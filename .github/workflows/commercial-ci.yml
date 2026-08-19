@@ -1,0 +1,32 @@
+name: commercial-ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - commercial-site-v1-plan
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Legacy deterministic engine regression
+        run: python scripts/test_pai_pan.py
+
+      - name: Commercial API regression
+        run: pytest -q tests/test_commercial_api.py
