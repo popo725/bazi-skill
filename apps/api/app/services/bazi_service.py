@@ -5,18 +5,22 @@ from datetime import date
 from scripts import pai_pan
 
 from ..schemas import BaziChartRequest
+from .lunar_crosscheck import LunarPythonCrossCheck
 
 
 class BaziService:
     """Adapter around the current deterministic chart engine.
 
     HTTP handlers should not depend directly on scripts.pai_pan. This adapter
-    becomes the seam where lunar-python cross-checking, true-solar-time support,
-    engine-version metadata and structured rule IDs will be added.
+    is the seam for independent calendar cross-checks, true-solar-time support,
+    engine-version metadata and future structured rule IDs.
     """
 
     engine_name = "bazi-skill-pai-pan"
     engine_version = "legacy-v1"
+
+    def __init__(self) -> None:
+        self.crosscheck = LunarPythonCrossCheck()
 
     @staticmethod
     def _parse_clock(value: str | None) -> tuple[int | None, int | None]:
@@ -48,6 +52,18 @@ class BaziService:
             place=payload.birth_place,
         )
 
+        verification = {
+            "status": "not_run",
+            "reason": "Exact clock time is required for independent cross-check.",
+        }
+        if hour is not None and minute is not None:
+            secondary = self.crosscheck.calculate_pillars(solar_date, hour, minute)
+            verification = {
+                "status": "completed",
+                "engine": self.crosscheck.engine_name,
+                **self.crosscheck.compare(result["pillars"], secondary),
+            }
+
         # Keep deterministic facts separate from any future AI interpretation.
         return {
             "engine": {
@@ -75,5 +91,6 @@ class BaziService:
                 "shensha": result["shensha_lines"],
                 "warnings": result["warnings"],
             },
+            "verification": verification,
             "disclaimer": "Traditional-culture and entertainment reference only; not a basis for medical, legal, financial, or other high-stakes decisions.",
         }
