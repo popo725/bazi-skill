@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+sqlalchemy
+alembic
+psycopg[binary]
+redis
+httpx
+python-multipart
+orjson
+lunar-python
+openai
+anthropic
+pytest
+pytest-asyncio
